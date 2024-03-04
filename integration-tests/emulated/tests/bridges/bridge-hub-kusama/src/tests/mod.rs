@@ -18,6 +18,7 @@ use crate::*;
 mod asset_transfers;
 mod send_xcm;
 mod teleport;
+mod claim_assets;
 
 pub(crate) fn asset_hub_polkadot_location() -> Location {
 	Location::new(
@@ -105,22 +106,4 @@ pub(crate) fn assert_bridge_hub_polkadot_message_received() {
 			]
 		);
 	})
-}
-
-#[test]
-fn assets_can_be_claimed() {
-	use bridge_hub_kusama_runtime::ExistentialDeposit;
-	use integration_tests_helpers::test_parachain_can_claim_assets;
-	use xcm_executor::traits::DropAssets;
-
-	let amount = ExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
-
-	test_parachain_can_claim_assets!(
-		AssetHubKusama,
-		RuntimeCall,
-		NetworkId::Kusama,
-		assets,
-		amount
-	);
 }

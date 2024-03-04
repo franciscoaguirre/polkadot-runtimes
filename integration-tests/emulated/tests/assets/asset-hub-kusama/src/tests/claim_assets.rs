@@ -13,17 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod reserve_transfer;
-mod send;
-mod set_xcm_versions;
-mod swap;
-mod teleport;
-mod claim_assets;
+//! Tests related to claiming assets trapped during XCM execution.
 
 use crate::*;
-emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
-	PenpalA,
-	AssetHubKusama,
-	KUSAMA_ED,
-	system_parachains_constants::kusama::fee::WeightToFee
-);
+
+use asset_hub_kusama_runtime::ExistentialDeposit;
+use integration_tests_helpers::test_parachain_can_claim_assets;
+use xcm_executor::traits::DropAssets;
+
+#[test]
+fn assets_can_be_claimed() {
+	let amount = ExistentialDeposit::get();
+	let assets: Assets = (Parent, amount).into();
+
+	test_parachain_can_claim_assets!(
+		AssetHubKusama,
+		RuntimeCall,
+		NetworkId::Kusama,
+		assets,
+		amount
+	);
+}
