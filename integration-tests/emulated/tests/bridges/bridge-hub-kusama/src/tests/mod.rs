@@ -16,9 +16,9 @@
 use crate::*;
 
 mod asset_transfers;
+mod claim_assets;
 mod send_xcm;
 mod teleport;
-mod claim_assets;
 
 pub(crate) fn asset_hub_polkadot_location() -> Location {
 	Location::new(
