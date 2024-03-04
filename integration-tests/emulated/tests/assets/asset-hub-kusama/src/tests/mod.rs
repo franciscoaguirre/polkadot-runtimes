@@ -26,3 +26,15 @@ emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_
 	KUSAMA_ED,
 	system_parachains_constants::kusama::fee::WeightToFee
 );
+
+#[test]
+fn assets_can_be_claimed() {
+	use asset_hub_kusama_runtime::ExistentialDeposit;
+	use integration_tests_helpers::test_parachain_can_claim_assets;
+	use xcm_executor::traits::DropAssets;
+
+	let amount = ExistentialDeposit::get();
+	let assets: Assets = (Parent, amount).into();
+
+	test_parachain_can_claim_assets!(AssetHubKusama, RuntimeCall, NetworkId::Kusama, assets, amount);
+}
