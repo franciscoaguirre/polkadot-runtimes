@@ -124,7 +124,7 @@ macro_rules! test_parachain_is_trusted_teleporter {
 }
 
 #[macro_export]
-macro_rules! test_parachain_can_claim_assets {
+macro_rules! test_chain_can_claim_assets {
 	( $sender_para:ty, $runtime_call:ty, $network_id:expr, $assets:expr, $amount:expr ) => {
 		$crate::paste::paste! {
 			let sender = [<$sender_para Sender>]::get();
@@ -139,7 +139,7 @@ macro_rules! test_parachain_can_claim_assets {
 				// The possible reasons for this might differ from runtime to runtime, so here we just drop them directly.
 				<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::drop_assets(
 					&beneficiary,
-					$assets.into(),
+					$assets.clone().into(),
 					&XcmContext { origin: None, message_id: [0u8; 32], topic: None },
 				);
 
@@ -155,6 +155,21 @@ macro_rules! test_parachain_can_claim_assets {
 
 				let balance_before = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&sender);
 
+				// Different origin or different assets won't work.
+				let other_origin = <$sender_para as $crate::Chain>::RuntimeOrigin::signed([<$sender_para Receiver>]::get());
+				assert!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
+					other_origin,
+					bx!(versioned_assets.clone().into()),
+					bx!(beneficiary.clone().into()),
+				).is_err());
+				let other_versioned_assets: $crate::VersionedAssets = Assets::new().into();
+				assert!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
+					origin.clone(),
+					bx!(other_versioned_assets.into()),
+					bx!(beneficiary.clone().into()),
+				).is_err());
+
+				// Assets will be claimed to `beneficiary`, which is the same as `sender`.
 				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
 					origin.clone(),
 					bx!(versioned_assets.clone().into()),
@@ -170,7 +185,36 @@ macro_rules! test_parachain_can_claim_assets {
 					]
 				);
 
+				// After claiming the assets, the balance has increased.
 				let balance_after = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&sender);
+				assert_eq!(balance_after, balance_before + $amount);
+
+				// Claiming the assets again doesn't work.
+				assert!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
+					origin.clone(),
+					bx!(versioned_assets.clone().into()),
+					bx!(beneficiary.clone().into()),
+				).is_err());
+
+				let balance = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&sender);
+				assert_eq!(balance, balance_after);
+
+				// You can also claim assets and send them to a different account.
+				<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::drop_assets(
+					&beneficiary,
+					$assets.clone().into(),
+					&XcmContext { origin: None, message_id: [0u8; 32], topic: None },
+				);
+				let receiver = [<$sender_para Receiver>]::get();
+				let other_beneficiary: Location =
+					$crate::AccountId32 { network: Some($network_id), id: receiver.clone().into() }.into();
+				let balance_before = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&receiver);
+				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::claim_assets(
+					origin.clone(),
+					bx!(versioned_assets.clone().into()),
+					bx!(other_beneficiary.clone().into()),
+				));
+				let balance_after = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&receiver);
 				assert_eq!(balance_after, balance_before + $amount);
 			});
 		}
