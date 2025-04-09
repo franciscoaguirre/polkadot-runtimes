@@ -249,7 +249,11 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 			command: Command::RegisterToken { token: WETH.into(), fee: XCM_FEE },
 		});
 		// Convert the message to XCM
-		let (xcm, _) = EthereumInboundQueue::do_convert([0; 32].into(), message).unwrap();
+		let (mut xcm, _) = EthereumInboundQueue::do_convert([0; 32].into(), message).unwrap();
+		// Workaround to make it work without https://github.com/paritytech/polkadot-sdk/pull/6503
+		let mut encoded = xcm.encode();
+		encoded[74] = 7;
+		xcm = Xcm::<()>::decode(&mut &encoded[..]).unwrap();
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
 		assert_expected_events!(
@@ -431,7 +435,10 @@ fn send_weth_from_ethereum_to_asset_hub() {
 			command: Command::RegisterToken { token: WETH.into(), fee: XCM_FEE },
 		});
 		// Convert the message to XCM
-		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		let (mut xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		let mut encoded = xcm.encode();
+		encoded[74] = 7;
+		xcm = Xcm::<()>::decode(&mut &encoded[..]).unwrap();
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
@@ -735,7 +742,10 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 			command: Command::RegisterToken { token: WETH.into(), fee: INSUFFICIENT_XCM_FEE },
 		});
 		// Convert the message to XCM
-		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		let (mut xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		let mut encoded = xcm.encode();
+		encoded[70] = 7;
+		xcm = Xcm::<()>::decode(&mut &encoded[..]).unwrap();
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
