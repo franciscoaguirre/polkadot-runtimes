@@ -374,19 +374,14 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmRecorder = PolkadotXcm;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
-	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset
-	// native to the Polkadot or Ethereum ecosystems.
-	type IsReserve = (
-		bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,
-		IsForeignConcreteAsset<
-			assets_common::matching::NonTeleportableAssetFromTrustedReserve<
-				parachain_info::Pallet<Runtime>,
-				crate::ForeignAssets,
-			>,
+	// Reserve trust is now fully data-driven: each foreign asset's on-chain reserve data
+	// (populated by the MBM migration) is used to determine which locations are trusted reserves.
+	type IsReserve = IsForeignConcreteAsset<
+		assets_common::matching::NonTeleportableAssetFromTrustedReserve<
+			parachain_info::Pallet<Runtime>,
+			crate::ForeignAssets,
 		>,
-	);
+	>;
 	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
 		crate::AhMigrator,
 		TrustedTeleportersWhileMigrating,

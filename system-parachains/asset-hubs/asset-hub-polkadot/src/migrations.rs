@@ -21,7 +21,7 @@ use assets_common::{
 };
 use xcm::latest::prelude::*;
 
-/// Unreleased migrations. Add new ones here:
+/// Unreleased single-block migrations. Add new ones here:
 pub type Unreleased = ();
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -101,21 +101,22 @@ mod tests {
 		let asset = Location::new(1, [Parachain(2000)]);
 		let reserves = AssetHubPolkadotForeignAssetsReservesProvider::reserves_for(&asset);
 		assert_eq!(reserves.len(), 1);
-		let expected: ForeignAssetReserveData =
-			(Location::new(1, [Parachain(2000)]), true).into();
+		let expected: ForeignAssetReserveData = (Location::new(1, [Parachain(2000)]), true).into();
 		assert_eq!(reserves[0], expected);
 	}
 
 	#[test]
 	fn kusama_ecosystem_asset_reserve() {
-		let asset =
-			Location::new(2, [GlobalConsensus(NetworkId::Kusama), Parachain(1000)]);
+		let asset = Location::new(2, [GlobalConsensus(NetworkId::Kusama), Parachain(1000)]);
 		let reserves = AssetHubPolkadotForeignAssetsReservesProvider::reserves_for(&asset);
 		assert_eq!(reserves.len(), 1);
-		let expected_reserve = Location::new(2, [
-			GlobalConsensus(NetworkId::Kusama),
-			Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID),
-		]);
+		let expected_reserve = Location::new(
+			2,
+			[
+				GlobalConsensus(NetworkId::Kusama),
+				Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID),
+			],
+		);
 		let expected: ForeignAssetReserveData = (expected_reserve, false).into();
 		assert_eq!(reserves[0], expected);
 	}
@@ -124,14 +125,16 @@ mod tests {
 	fn ethereum_ecosystem_asset_reserve() {
 		use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 
-		let asset = Location::new(2, [
-			GlobalConsensus(NetworkId::Ethereum { chain_id: 1 }),
-			AccountKey20 { network: None, key: [0u8; 20] },
-		]);
+		let asset = Location::new(
+			2,
+			[
+				GlobalConsensus(NetworkId::Ethereum { chain_id: 1 }),
+				AccountKey20 { network: None, key: [0u8; 20] },
+			],
+		);
 		let reserves = AssetHubPolkadotForeignAssetsReservesProvider::reserves_for(&asset);
 		assert_eq!(reserves.len(), 1);
-		let expected_reserve =
-			Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
+		let expected_reserve = Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
 		let expected: ForeignAssetReserveData = (expected_reserve, false).into();
 		assert_eq!(reserves[0], expected);
 	}

@@ -25,7 +25,7 @@ use super::{
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
-	matching::{FromNetwork, IsForeignConcreteAsset, ParentLocation},
+	matching::{IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
 };
 use core::marker::PhantomData;
@@ -444,20 +444,14 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmRecorder = PolkadotXcm;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
-	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). Asset Hub may _act_ as a reserve location for DOT and assets created
-	// under `pallet-assets`. Users must use teleport where allowed (e.g. DOT with the Relay Chain).
-	type IsReserve = (
-		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
-		bridging::to_ethereum::EthereumAssetFromEthereum,
-		IsForeignConcreteAsset<
-			assets_common::matching::NonTeleportableAssetFromTrustedReserve<
-				parachain_info::Pallet<Runtime>,
-				crate::ForeignAssets,
-			>,
+	// Reserve trust is now fully data-driven: each foreign asset's on-chain reserve data
+	// (populated by the MBM migration) is used to determine which locations are trusted reserves.
+	type IsReserve = IsForeignConcreteAsset<
+		assets_common::matching::NonTeleportableAssetFromTrustedReserve<
+			parachain_info::Pallet<Runtime>,
+			crate::ForeignAssets,
 		>,
-	);
+	>;
 	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
 		crate::AhMigrator,
 		TrustedTeleportersWhileMigrating,
@@ -888,9 +882,6 @@ pub mod bridging {
 				xcm_builder::NetworkExportTable<EthereumBridgeTableV2>,
 				snowbridge_outbound_queue_primitives::v2::XcmForSnowbridgeV2,
 			>;
-
-		pub type EthereumAssetFromEthereum =
-			IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
 		impl Contains<(Location, Junction)> for UniversalAliases {
 			fn contains(alias: &(Location, Junction)) -> bool {
