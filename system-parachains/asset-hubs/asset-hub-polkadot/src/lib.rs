@@ -69,6 +69,8 @@ pub mod ah_migration;
 pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 pub mod governance;
+#[allow(deprecated, missing_docs)]
+pub mod migrations;
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests;
 pub mod staking;
@@ -237,6 +239,25 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+parameter_types! {
+	pub MbmServiceWeight: Weight = Perbill::from_percent(80) * RuntimeBlockWeights::get().max_block;
+}
+
+impl pallet_migrations::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Migrations = migrations::MbmMigrations;
+	// Benchmarks need mocked migrations to guarantee that they succeed.
+	#[cfg(feature = "runtime-benchmarks")]
+	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
+	type CursorMaxLen = ConstU32<65_536>;
+	type IdentifierMaxLen = ConstU32<256>;
+	type MigrationStatusHandler = ();
+	type FailedMigrationHandler = frame_support::migrations::FreezeChainOnFailedMigration;
+	type MaxServiceWeight = MbmServiceWeight;
+	type WeightInfo = weights::pallet_migrations::WeightInfo<Runtime>;
+}
+
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
 	type BaseCallFilter = AhMigrator;
@@ -265,7 +286,7 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = ConstU32<64>;
 	type SingleBlockMigrations = migrations::SingleBlockMigrations;
-	type MultiBlockMigrator = ();
+	type MultiBlockMigrator = MultiBlockMigrations;
 	type PreInherents = ();
 	type PostInherents = ();
 	type PostTransactions = ();
@@ -1500,6 +1521,7 @@ construct_runtime!(
 		Scheduler: pallet_scheduler = 6,
 		Parameters: pallet_parameters = 7,
 		WeightReclaim: cumulus_pallet_weight_reclaim = 8,
+		MultiBlockMigrations: pallet_migrations = 9,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1627,23 +1649,7 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-/// The runtime migrations per release.
-#[allow(deprecated, missing_docs)]
-pub mod migrations {
-	use super::*;
-
-	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
-	/// All single block migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
-}
+// The runtime migrations per release are defined in `migrations.rs`.
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1741,6 +1747,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
+		[pallet_migrations, MultiBlockMigrations]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
 		[pallet_preimage, Preimage]

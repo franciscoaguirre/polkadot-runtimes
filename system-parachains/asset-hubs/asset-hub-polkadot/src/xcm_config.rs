@@ -25,7 +25,7 @@ use super::{
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
-	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
+	matching::{FromNetwork, IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
 };
 use core::marker::PhantomData;
@@ -396,17 +396,26 @@ pub type WaivedLocations = (
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 ///
 /// - DOT with the parent Relay Chain and sibling system parachains; and
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
+/// - Foreign assets whose per-asset reserve data marks them as teleportable.
 pub type TrustedTeleporters = (
 	ConcreteAssetFromSystem<DotLocation>,
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
+	IsForeignConcreteAsset<
+		assets_common::matching::TeleportableAssetWithTrustedReserve<
+			parachain_info::Pallet<Runtime>,
+			crate::ForeignAssets,
+		>,
+	>,
 );
 
 /// During migration we only allow teleports of foreign assets (not DOT).
 ///
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
-pub type TrustedTeleportersWhileMigrating =
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>;
+/// - Foreign assets whose per-asset reserve data marks them as teleportable.
+pub type TrustedTeleportersWhileMigrating = IsForeignConcreteAsset<
+	assets_common::matching::TeleportableAssetWithTrustedReserve<
+		parachain_info::Pallet<Runtime>,
+		crate::ForeignAssets,
+	>,
+>;
 
 /// Defines all global consensus locations that Kusama Asset Hub is allowed to alias into.
 pub struct KusamaGlobalConsensus;
@@ -442,6 +451,12 @@ impl xcm_executor::Config for XcmConfig {
 	type IsReserve = (
 		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		bridging::to_ethereum::EthereumAssetFromEthereum,
+		IsForeignConcreteAsset<
+			assets_common::matching::NonTeleportableAssetFromTrustedReserve<
+				parachain_info::Pallet<Runtime>,
+				crate::ForeignAssets,
+			>,
+		>,
 	);
 	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
 		crate::AhMigrator,

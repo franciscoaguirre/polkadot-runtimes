@@ -30,6 +30,8 @@ compile_error!("Asset Hub migration requires the `kusama-ahm` feature");
 extern crate alloc;
 
 pub mod ah_migration;
+#[allow(deprecated, missing_docs)]
+pub mod migrations;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod governance;
@@ -1754,23 +1756,7 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 pub type UncheckedExtrinsic =
 	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
-/// The runtime migrations per release.
-#[allow(deprecated, missing_docs)]
-pub mod migrations {
-	use super::*;
-
-	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
-	/// All single block migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
-}
+// The runtime migrations per release are defined in `migrations.rs`.
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<

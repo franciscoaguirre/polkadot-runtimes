@@ -25,7 +25,7 @@ use super::{
 use crate::ForeignAssets;
 use alloc::{vec, vec::Vec};
 use assets_common::{
-	matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
+	matching::{IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
 };
 use core::marker::PhantomData;
@@ -323,17 +323,26 @@ pub type WaivedLocations = (
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 ///
 /// - KSM with the parent Relay Chain and sibling system parachains; and
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
+/// - Foreign assets whose per-asset reserve data marks them as teleportable.
 pub type TrustedTeleporters = (
 	ConcreteAssetFromSystem<KsmLocation>,
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
+	IsForeignConcreteAsset<
+		assets_common::matching::TeleportableAssetWithTrustedReserve<
+			parachain_info::Pallet<Runtime>,
+			crate::ForeignAssets,
+		>,
+	>,
 );
 
-/// During migration we only allow teleports of foreign assets (not DOT).
+/// During migration we only allow teleports of foreign assets (not KSM).
 ///
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
-pub type TrustedTeleportersWhileMigrating =
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>;
+/// - Foreign assets whose per-asset reserve data marks them as teleportable.
+pub type TrustedTeleportersWhileMigrating = IsForeignConcreteAsset<
+	assets_common::matching::TeleportableAssetWithTrustedReserve<
+		parachain_info::Pallet<Runtime>,
+		crate::ForeignAssets,
+	>,
+>;
 
 /// Defines all global consensus locations that Polkadot Asset Hub is allowed to alias into.
 pub struct PolkadotOrEthereumGlobalConsensus;
@@ -369,7 +378,15 @@ impl xcm_executor::Config for XcmConfig {
 	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
 	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset
 	// native to the Polkadot or Ethereum ecosystems.
-	type IsReserve = (bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,);
+	type IsReserve = (
+		bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,
+		IsForeignConcreteAsset<
+			assets_common::matching::NonTeleportableAssetFromTrustedReserve<
+				parachain_info::Pallet<Runtime>,
+				crate::ForeignAssets,
+			>,
+		>,
+	);
 	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<
 		crate::AhMigrator,
 		TrustedTeleportersWhileMigrating,

@@ -1296,6 +1296,7 @@ dependencies = [
  "pallet-election-provider-multi-block",
  "pallet-indices",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-multisig",
  "pallet-nfts",
  "pallet-nfts-runtime-api",

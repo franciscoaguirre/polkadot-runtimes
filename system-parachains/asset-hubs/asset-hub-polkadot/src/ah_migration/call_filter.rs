@@ -137,6 +137,7 @@ pub fn call_allowed_status(
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
 		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
+		MultiBlockMigrations(..) => ON,
 		Parameters(..) => ON, // allow governance to still update any params if needed
 		Revive(..) => OFF,
 	};
@@ -207,6 +208,7 @@ pub fn call_allowed_before_migration(
 		Utility(..) |
 		Whitelist(..) |
 		XcmpQueue(..) |
+		MultiBlockMigrations(..) |
 		Revive(..) |
 		Parameters(..) => ON,
 	}
